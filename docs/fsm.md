@@ -65,7 +65,7 @@ interface PokerMachineContext {
   potChips: number;
   
   // 베팅 관련
-  currentBettingRound: 'BET_1' | 'BET_2' | null;
+  currentBettingRound: 'BETTING_1' | 'BETTING_2' | null;
   minBet: number; // 기본 1칩, 또는 이전 베팅액
   maxBet: number; // 가장 칩이 적은 플레이어의 칩 수 or 상황에 따른 한도
   lastBetAmount: number; // 현재 베팅 라운드의 마지막 베팅액 (콜 기준)
@@ -188,33 +188,28 @@ const initialContext: PokerMachineContext = {
 
 #### 3.3.2. `DealingSharedCards1` 상태
 
--   **설명**: 시스템이 첫 번째 공유 카드 2장을 공개합니다. (`game-rule.md` 5번 항목 기반, PRD의 상태머신 순서와 약간 다름. PRD: Ready → Shared card 1 → drawing personal card 1. 규칙 기반으로 수정: 개인 카드 먼저 받고 공유카드.)
-    PRD 순서(`Ready → Shared card 1 → drawing personal card 1`)로 진행하려면 아래 `DealingPersonalCards`와 순서 변경. 여기서는 게임 규칙 문서 기반으로 개인 카드 먼저 지급.
+-   **설명**: 각 `ACTIVE` 플레이어에게 개인 카드 2장을 비공개로 지급합니다.
 -   **진입 시 액션 (`entry`)**:
     -   `dealPersonalCardsToPlayers` (덱에서 각 `ACTIVE` 플레이어에게 2장씩 비공개 지급, 컨텍스트 업데이트)
     -   `persistPlayerHands` (DB `PlayerHands` 테이블에 개인 카드 정보 저장)
     -   `broadcastPersonalCardsDealt` (각 플레이어에게 자신의 카드 정보만 전송)
--   **전환**:
-    -   항상 (`always`): `DealingPersonalCards` (PRD 순서대로라면 `DealingSharedCards1`이 되어야 함. 여기서는 규칙 문서 기반)
+-   **전환**: 항상 (`always`): `DealingSharedCards1`
 
 #### 3.3.3. `DealingPersonalCards` 상태 (규칙 기반: 이 상태가 DealingSharedCards1 보다 먼저)
 
-PRD의 `Shared card 1 → drawing personal card 1` 순서를 따르려면 이 상태가 `DealingSharedCards1` 이후로 와야 합니다.
-여기서는 `game-rule.md` (4. 개인 카드 지급 후 5. 공유 카드 공개)를 기준으로 개인 카드 지급을 먼저 처리.
-
--   **설명**: 첫 번째 공유 카드 2장 공개.
+-   **이전 상태명**: `DealingPersonalCards` (이 상태가 이제 첫 번째 공유 카드 공개를 담당)
+-   **설명**: 시스템이 첫 번째 공유 카드 2장을 공개합니다.
 -   **진입 시 액션 (`entry`)**:
     -   `dealFirstSharedCards` (덱에서 2장 뽑아 `sharedCards`에 추가, 컨텍스트 업데이트)
-    -   `persistSharedCardsUpdate` (DB `GameRounds.shared_card_1` 업데이트)
+    -   `persistSharedCardsUpdate` (DB `GameRounds.shared_card_1` 업데이트 - 참고: DB 스키마는 현재 SharedCards 테이블로 변경됨)
     -   `broadcastSharedCardsUpdate`
--   **전환**:
-    -   항상 (`always`): `Betting1`
+-   **전환**: 항상 (`always`): `Betting1`
 
 #### 3.3.4. `Betting1` 상태
 
 -   **설명**: 첫 번째 베팅 라운드.
 -   **진입 시 액션 (`entry`)**:
-    -   `setupBettingRound` (currentBettingRound='BET_1', activeBettors 설정 (ACTIVE 상태인 플레이어), bettingOrder 설정, min/maxBet 계산, lastBetAmount=0, betsInCurrentPhase 초기화)
+    -   `setupBettingRound` (currentBettingRound='BETTING_1', activeBettors 설정 (ACTIVE 상태인 플레이어), bettingOrder 설정, min/maxBet 계산, lastBetAmount=0, betsInCurrentPhase 초기화)
     -   `setNextPlayerTurnForBetting` (베팅 순서의 첫번째 플레이어로 턴 설정)
     -   `broadcastBettingPhaseStart`
 -   **이벤트 (`on`)**:
@@ -253,7 +248,7 @@ PRD의 `Shared card 1 → drawing personal card 1` 순서를 따르려면 이 �
 
 -   **설명**: 두 번째 베팅 라운드. `Betting1` 상태와 유사하게 동작.
 -   **진입 시 액션 (`entry`)**:
-    -   `setupBettingRound` (currentBettingRound='BET_2', ...)
+    -   `setupBettingRound` (currentBettingRound='BETTING_2', ...)
     -   `setNextPlayerTurnForBetting`
     -   `broadcastBettingPhaseStart`
 -   **이벤트 (`on`)**:
@@ -307,7 +302,7 @@ PRD의 `Shared card 1 → drawing personal card 1` 순서를 따르려면 이 �
     -   `determineRoundWinner`:
         -   `ACTIVE` 플레이어들 중 `isSniped === false`인 플레이어들 중에서 가장 높은 족보를 가진 플레이어를 찾습니다.
         -   그 다음으로 `isSniped === true`인 플레이어들을 고려합니다 (저격당한 족보는 최하위).
-        -   동점자 규칙(`game-rule.md` 10번)을 적용하여 최종 승자(`roundWinner`) 또는 무승부(`isDraw`)를 결정합니다.
+        -   동점자 규칙(`game-rule.md` 및 `namu-wiki.md`의 상세 규칙 참조)을 적용하여 최종 승자(`roundWinner`) 또는 무승부(`isDraw`)를 결정합니다.
     -   `persistShowdownResults` (DB `PlayerHands.final_hand_rank`, `PlayerHands.is_sniped`, `Snipes.is_successful`, `GameRounds.winner_participant_id`, `GameRounds.is_draw` 등 업데이트)
     -   `broadcastShowdownResults` (모든 카드, 족보, 저격 성공 여부, 라운드 승자 정보 포함)
 -   **전환**:
@@ -321,9 +316,14 @@ PRD의 `Shared card 1 → drawing personal card 1` 순서를 따르려면 이 �
     -   `persistChipChanges` (DB `GameParticipants.chips` 업데이트)
     -   `checkPlayerSurvivalAndElimination`:
         -   각 플레이어의 칩 확인.
-        -   75칩 이상이면 `Player.status = 'SURVIVED'`, `GameParticipants.status`, `survived_at` 업데이트. 생존 확정 플레이어는 남은 칩 분배 로직 수행 (규칙 11).
+        -   75칩 이상이면 `Player.status = 'SURVIVED'`, `GameParticipants.status`, `survived_at` 업데이트.
         -   칩이 0개 이하이고 생존하지 못한 플레이어는 `Player.status = 'ELIMINATED'`, `GameParticipants.status`, `eliminated_at` 업데이트.
     -   `updateUserStatistics` (라운드 결과, 승패, 저격 성공/실패 등 DB `UserStatistics` 업데이트)
+    -   `handleSurvivorChipDistribution`: (생존자가 발생한 경우 실행)
+        -   생존 확정한 플레이어가 75칩을 초과하여 보유한 경우, 초과분을 다른 플레이어에게 분배합니다.
+        -   분배 시, 칩이 0개인 플레이어에게는 최소 1개의 칩을 주어야 합니다. (`game-rule.md`, `namu-wiki.md` 규칙 참조)
+        -   분배 로직은 UI를 통해 생존자가 직접 선택하거나, 미리 정해진 규칙(예: 남은 플레이어에게 균등 분배)을 따를 수 있습니다.
+        -   분배 결과에 따라 `Player.chips` 컨텍스트 및 DB `GameParticipants.chips`를 업데이트합니다.
     -   `broadcastSettlementUpdate`
     -   `checkForGameEndCondition`:
         -   `ACTIVE` 상태인 플레이어가 1명 이하이거나, 모든 플레이어가 `SURVIVED` 또는 `ELIMINATED` 상태가 되면 게임 종료.

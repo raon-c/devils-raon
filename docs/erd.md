@@ -52,8 +52,8 @@ erDiagram
         UUID id PK "핸드 고유 ID"
         UUID round_id FK "해당 핸드가 속한 라운드 ID (REFERENCES GameRounds(id) ON DELETE CASCADE)"
         UUID participant_id FK "해당 핸드의 플레이어 ID (REFERENCES GameParticipants(id) ON DELETE CASCADE)"
-        INTEGER personal_card_1 "첫 번째 개인 카드 (1-52 사이 값, NOT NULL)"
-        INTEGER personal_card_2 "두 번째 개인 카드 (1-52 사이 값, NOT NULL, personal_card_1과 중복 불가)"
+        INTEGER personal_card_1 "첫 번째 개인 카드 (1-10 사이 값, NOT NULL)"
+        INTEGER personal_card_2 "두 번째 개인 카드 (1-10 사이 값, NOT NULL, personal_card_1과 중복 불가)"
         UUID hand_rank_id FK "최종 결정된 족보 ID (REFERENCES HandRanks(id) NULL 허용)"
         BOOLEAN is_sniped "저격 당했는지 여부 (NOT NULL, DEFAULT FALSE)"
         TIMESTAMPTZ created_at "핸드 생성(카드 지급) 시각 (NOT NULL, DEFAULT NOW())"
@@ -90,18 +90,18 @@ erDiagram
 
     GamePhases {
         UUID id PK "게임 단계 고유 ID"
-        VARCHAR phase_name "게임 진행 단계명 (UNIQUE, NOT NULL, 예: READY, BET_1, SHARED_CARD_1_DEAL, BET_2, SHARED_CARD_2_DEAL, SHOWDOWN)"
+        VARCHAR phase_name "게임 진행 단계명 (UNIQUE, NOT NULL, 예: READY, DEAL_PERSONAL_CARDS, REVEAL_SHARED_CARDS_1, BETTING_1, REVEAL_SHARED_CARDS_2, BETTING_2, SNIPING, SHOWDOWN, SETTLEMENT)"
     }
 
     HandRanks {
         UUID id PK "족보 고유 ID"
-        VARCHAR rank_name "족보명 (UNIQUE, NOT NULL, 예: ROYAL_FLUSH, STRAIGHT_FLUSH, FOUR_OF_A_KIND)"
+        VARCHAR rank_name "족보명 (UNIQUE, NOT NULL, 예: FOUR_OF_A_KIND, FULL_HOUSE, STRAIGHT, TRIPLE, TWO_PAIR, ONE_PAIR, HIGH_CARD)"
     }
 
     SharedCards {
         UUID id PK "공유 카드 레코드 고유 ID"
         UUID round_id FK "해당 카드가 속한 라운드 ID (REFERENCES GameRounds(id) ON DELETE CASCADE)"
-        INTEGER card_value "카드 값 (1-52 사이 값, NOT NULL)"
+        INTEGER card_value "카드 값 (1-10 사이 값, NOT NULL)"
         INTEGER deal_order "라운드 내 공유 순서 (NOT NULL, 예: 1=플랍1, 2=플랍2, ..., 5=리버)"
         TIMESTAMPTZ created_at "카드 공개 시각 (NOT NULL, DEFAULT NOW())"
     }
@@ -109,7 +109,7 @@ erDiagram
     FinalHandCompositionCards {
         UUID id PK "최종 핸드 구성 카드 레코드 고유 ID"
         UUID player_hand_id FK "해당 카드가 속한 플레이어 핸드 ID (REFERENCES PlayerHands(id) ON DELETE CASCADE)"
-        INTEGER card_value "카드 값 (1-52 사이 값, NOT NULL)"
+        INTEGER card_value "카드 값 (1-10 사이 값, NOT NULL)"
         INTEGER card_order_in_hand "핸드 내 카드 순서 (1-5, 족보 구성 시)"
         TIMESTAMPTZ created_at "카드 정보 생성 시각 (NOT NULL, DEFAULT NOW())"
     }
@@ -142,16 +142,16 @@ erDiagram
 *   **Users**: 사용자 계정 정보
 *   **GameRooms**: 게임 방 정보. `room_status_id`를 통해 `RoomStatuses` 테이블을 참조하여 방의 현재 상태(대기중, 진행중 등)를 관리합니다.
 *   **GameParticipants**: 게임 방에 참여한 플레이어 정보. `player_status_id`를 통해 `PlayerStatuses` 테이블을 참조하여 플레이어의 현재 상태(활성, 폴드, 탈락 등)를 관리합니다.
-*   **GameRounds**: 게임 방 내에서 진행되는 각 라운드의 정보. `game_phase_id`를 통해 `GamePhases` 테이블을 참조하여 라운드의 현재 진행 단계(베팅1, 공유카드 공개 등)를 관리합니다. 공유 카드는 `SharedCards` 테이블을 통해 관리됩니다.
+*   **GameRounds**: 게임 방 내에서 진행되는 각 라운드의 정보. `game_phase_id`를 통해 `GamePhases` 테이블을 참조하여 라운드의 현재 진행 단계(개인 카드 지급, 첫 공유카드 공개, 첫 베팅 등)를 관리합니다. 공유 카드는 `SharedCards` 테이블을 통해 관리됩니다.
 *   **PlayerHands**: 라운드별 플레이어의 개인 카드 및 최종 패 정보. `hand_rank_id`를 통해 `HandRanks` 테이블을 참조하여 최종 결정된 족보를 관리합니다. 최종 핸드를 구성하는 카드들은 `FinalHandCompositionCards` 테이블을 통해 관리됩니다.
-*   **Bets**: 라운드별 베팅 기록. `bet_phase_id`를 통해 `GamePhases`를 참조하여 어떤 게임 단계에서 베팅이 이루어졌는지 기록합니다.
+*   **Bets**: 라운드별 베팅 기록. `bet_phase_id`를 통해 `GamePhases`를 참조하여 어떤 게임 단계(예: BETTING_1)에서 베팅이 이루어졌는지 기록합니다.
 *   **Snipes**: 라운드별 저격 기록. `declared_rank_id`를 통해 `HandRanks` 테이블을 참조하여 플레이어가 선언한 족보를 관리합니다.
 *   **RoomStatuses**: 게임 방의 상태 코드 및 이름 정의 (예: 'WAITING', 'PLAYING').
 *   **PlayerStatuses**: 플레이어의 상태 코드 및 이름 정의 (예: 'ACTIVE', 'FOLDED').
-*   **GamePhases**: 게임 라운드의 진행 단계 코드 및 이름 정의 (예: 'BET_1', 'SHOWDOWN').
-*   **HandRanks**: 포커 핸드의 족보 코드 및 이름 정의 (예: 'ROYAL_FLUSH', 'PAIR').
-*   **SharedCards**: 라운드에서 공개되는 공유 카드(커뮤니티 카드) 정보. 각 카드는 개별 레코드로 저장됩니다.
-*   **FinalHandCompositionCards**: 플레이어의 최종 핸드(족보)를 구성하는 카드들의 정보. 각 구성 카드는 개별 레코드로 저장됩니다.
+*   **GamePhases**: 게임 라운드의 진행 단계 코드 및 이름 정의 (예: 'READY', 'DEAL_PERSONAL_CARDS', 'BETTING_1').
+*   **HandRanks**: 포커 핸드의 족보 코드 및 이름 정의 (예: 'FOUR_OF_A_KIND', 'STRAIGHT').
+*   **SharedCards**: 라운드에서 공개되는 공유 카드(커뮤니티 카드) 정보. 각 카드는 개별 레코드로 저장됩니다. (카드 값: 1-10)
+*   **FinalHandCompositionCards**: 플레이어의 최종 핸드(족보)를 구성하는 카드들의 정보. 각 구성 카드는 개별 레코드로 저장됩니다. (카드 값: 1-10)
 
 **관계 설명:**
 
@@ -185,9 +185,9 @@ erDiagram
 
 **참고:**
 
-*   **엔티티 및 속성 명명:** 컬럼명 `personal_card_1`, `personal_card_2`와 같이 특정 개수가 고정된 속성은 확장성보다는 명확성을 위해 그대로 유지했습니다. 다중 값을 가질 수 있는 카드 정보(공유 카드, 최종 핸드 구성 카드)는 별도 테이블로 분리하여 정규화했습니다. `card_value`는 카드를 고유하게 식별하는 값(예: 표준 52장 카드덱에 대한 1-52 범위의 정수)을 의미합니다.
-*   **타입 관리 (Enum 대체):** 기존에 인라인으로 사용되던 `room_status`, `player_status`, `game_phase`, `hand_rank`와 같은 상태 및 유형 정보는 별도의 조회 테이블 (`RoomStatuses`, `PlayerStatuses`, `GamePhases`, `HandRanks`)로 분리하여 관리합니다. 각 주 테이블은 해당 조회 테이블의 ID를 외래 키로 참조하여 유지보수성과 확장성을 향상시켰습니다. 각 조회 테이블의 `*_name` 컬럼에 예시값을 명시했습니다.
-*   **카드 정보 모델링:** `GameRounds`의 공유 카드 정보 및 `PlayerHands`의 최종 핸드 구성 카드 정보는 기존 `INTEGER_ARRAY` 방식에서 별도의 테이블 (`SharedCards`, `FinalHandCompositionCards`)로 변경되었습니다. 이를 통해 각 카드 정보를 개별 레코드로 관리하고, 카드 값에 대한 제약 조건 적용 및 복잡한 카드 관련 쿼리를 용이하게 합니다.
+*   **엔티티 및 속성 명명:** 컬럼명 `personal_card_1`, `personal_card_2`와 같이 특정 개수가 고정된 속성은 확장성보다는 명확성을 위해 그대로 유지했습니다. 다중 값을 가질 수 있는 카드 정보(공유 카드, 최종 핸드 구성 카드)는 별도 테이블로 분리하여 정규화했습니다. `card_value`는 카드를 고유하게 식별하는 값(1-10 범위의 정수)을 의미합니다.
+*   **타입 관리 (Enum 대체):** 기존에 인라인으로 사용되던 `room_status`, `player_status`, `game_phase`, `hand_rank`와 같은 상태 및 유형 정보는 별도의 조회 테이블 (`RoomStatuses`, `PlayerStatuses`, `GamePhases`, `HandRanks`)로 분리하여 관리합니다. 각 주 테이블은 해당 조회 테이블의 ID를 외래 키로 참조하여 유지보수성과 확장성을 향상시켰습니다. 각 조회 테이블의 `*_name` 컬럼에 예시값을 명시했습니다. `HandRanks`의 예시는 `FOUR_OF_A_KIND`, `FULL_HOUSE` 등 실제 게임 룰에 따릅니다. `GamePhases`의 예시는 `DEAL_PERSONAL_CARDS`, `BETTING_1` 등 실제 게임 단계에 맞게 수정되었습니다.
+*   **카드 정보 모델링:** `GameRounds`의 공유 카드 정보 및 `PlayerHands`의 최종 핸드 구성 카드 정보는 기존 `INTEGER_ARRAY` 방식에서 별도의 테이블 (`SharedCards`, `FinalHandCompositionCards`)로 변경되었습니다. 이를 통해 각 카드 정보를 개별 레코드로 관리하고, 카드 값(1-10)에 대한 제약 조건 적용 및 복잡한 카드 관련 쿼리를 용이하게 합니다.
 *   **데이터 무결성:** 외래 키에는 `ON DELETE CASCADE` 또는 `ON DELETE SET NULL` 옵션을 사용하여 참조 무결성을 유지합니다. `UNIQUE` 제약 조건, `CHECK` 제약 등은 `db-schema.md`에 상세히 명시되어 있으며, ERD에서는 주요 사항만 주석으로 간략히 표시했습니다. (예: `PlayerHands.personal_card_2`는 `personal_card_1`과 중복될 수 없습니다.)
 *   **물리적 최적화 고려 사항 (권장):**
     *   **인덱싱:** 외래 키(FK) 컬럼, `GameRooms.room_code`, `Users.username`, `GameRounds.round_number` 등 자주 조회 조건으로 사용되는 컬럼에는 인덱스를 생성하여 조회 성능을 향상시키는 것을 권장합니다.

@@ -41,14 +41,14 @@
 
 ### `game_phase` (게임 라운드 상태 - XState와 동기화)
 
--   `READY` (준비)
--   `SHARED_CARD_1` (공유 카드 1 공개)
--   `PERSONAL_CARD_1_DRAW` (개인 카드 1 지급)
--   `BET_1` (베팅 1)
--   `SHARED_CARD_2` (공유 카드 2 공개)
--   `BET_2` (베팅 2)
--   `SNIPE` (저격)
--   `SHOWDOWN` (쇼다운)
+-   `READY` (라운드 준비)
+-   `DEAL_PERSONAL_CARDS` (개인 카드 2장 지급)
+-   `REVEAL_SHARED_CARDS_1` (첫 번째 공유 카드 2장 공개)
+-   `BETTING_1` (첫 번째 베팅)
+-   `REVEAL_SHARED_CARDS_2` (두 번째 공유 카드 2장 공개)
+-   `BETTING_2` (두 번째 베팅)
+-   `SNIPING` (저격)
+-   `SHOWDOWN` (결과 공개)
 -   `SETTLEMENT` (정산)
 
 ## Tables
@@ -146,7 +146,7 @@
 | `round_id`       | `UUID`         | `NOT NULL`, `REFERENCES GameRounds(id) ON DELETE CASCADE` | 해당 베팅이 속한 라운드 ID                  |
 | `participant_id` | `UUID`         | `NOT NULL`, `REFERENCES GameParticipants(id) ON DELETE CASCADE` | 베팅한 플레이어 ID                        |
 | `bet_amount`     | `INTEGER`      | `NOT NULL`, `CHECK (bet_amount > 0)`          | 베팅한 칩 개수                            |
-| `bet_phase`      | `game_phase`   | `NOT NULL`, `CHECK (bet_phase IN ('BET_1', 'BET_2'))` | 베팅이 이루어진 단계 (`BET_1` 또는 `BET_2`) |
+| `bet_phase`      | `game_phase`   | `NOT NULL`, `CHECK (bet_phase IN ('BETTING_1', 'BETTING_2'))` | 베팅이 이루어진 단계 (`BETTING_1` 또는 `BETTING_2`) |
 | `created_at`     | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`                     | 베팅 시각                                 |
 
 ### Snipes
