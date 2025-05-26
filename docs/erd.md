@@ -85,7 +85,7 @@ erDiagram
 
     PlayerStatuses {
         UUID id PK "플레이어 상태 고유 ID"
-        VARCHAR status_name "플레이어 상태명 (UNIQUE, NOT NULL, 예: ACTIVE, FOLDED, ELIMINATED, ALL_IN)"
+        VARCHAR status_name "플레이어 상태명 (UNIQUE, NOT NULL, 예: ACTIVE, SURVIVED, ELIMINATED)"
     }
 
     GamePhases {

@@ -22,7 +22,7 @@ interface Player {
   userId: string; // Users.id
   username: string;
   chips: number;
-  status: 'ACTIVE' | 'SURVIVED' | 'ELIMINATED' | 'OBSERVING';
+  status: 'ACTIVE' | 'SURVIVED' | 'ELIMINATED';
   turnOrder: number;
   personalCards: number[]; // [숫자, 숫자]
   finalHand?: { rank: HandRank; cards: number[]; highCard: number };

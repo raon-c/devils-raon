@@ -27,7 +27,6 @@
 -   `ACTIVE` (게임 중)
 -   `SURVIVED` (생존 확정)
 -   `ELIMINATED` (탈락)
--   `OBSERVING` (관전 중)
 
 ### `hand_rank` (족보)
 
@@ -91,7 +90,7 @@
 | `room_id`      | `UUID`         | `NOT NULL`, `REFERENCES GameRooms(id) ON DELETE CASCADE` | 참여한 게임 방 ID                             |
 | `user_id`      | `UUID`         | `NOT NULL`, `REFERENCES Users(id) ON DELETE CASCADE`    | 사용자 ID                                     |
 | `chips`        | `INTEGER`      | `NOT NULL`, `DEFAULT 60`        | 현재 보유 칩 개수 (게임 시작 시 60개)           |
-| `status`       | `player_status`| `NOT NULL`, `DEFAULT 'ACTIVE'`  | 플레이어 상태 (ACTIVE, SURVIVED, ELIMINATED, OBSERVING) |
+| `status`       | `player_status`| `NOT NULL`, `DEFAULT 'ACTIVE'`  | 플레이어 상태 (ACTIVE, SURVIVED, ELIMINATED) |
 | `turn_order`   | `INTEGER`      |                                 | 게임 내 순서 (랜덤 배정)                        |
 | `joined_at`    | `TIMESTAMPTZ`  | `NOT NULL`, `DEFAULT NOW()`     | 방 참여 시각                                  |
 | `survived_at`  | `TIMESTAMPTZ`  |                                 | 생존 확정 시각 (75칩 이상 달성 시)              |
