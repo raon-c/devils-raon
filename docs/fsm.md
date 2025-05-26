@@ -34,7 +34,6 @@ interface Player {
 
 interface SnipeDeclaration {
   sniperId: string; // participantId
-  targetId?: string; // participantId, 없으면 전체 저격
   declaredRank: HandRank;
   declaredHighCard: number;
 }
@@ -293,14 +292,24 @@ PRD의 `Shared card 1 → drawing personal card 1` 순서를 따르려면 이 �
 
 #### 3.3.8. `Showdown` 상태
 
--   **설명**: 모든 플레이어가 개인 카드를 공개하고, 시스템이 각 플레이어의 최종 족보를 계산하고 저격 결과를 반영하여 라운드 승자를 결정합니다.
+-   **설명**: 모든 생존 플레이어가 카드를 공개하고, 저격 결과를 적용하여 최종 라운드 승자를 결정합니다.
 -   **진입 시 액션 (`entry`)**:
-    -   `revealAllPersonalCards` (모든 참여 플레이어의 개인 카드 공개 - UI 효과용 브로드캐스트)
-    -   `calculateAllPlayerHands` (각 플레이어의 공유 카드 + 개인 카드로 최상위 족보 계산, `Player.finalHand` 업데이트)
-    -   `applySnipes` (저격 선언(`snipesInCurrentRound`)을 바탕으로 `Player.isSniped`, `Player.snipedBy`, `Player.snipedRank` 업데이트. 저격당한 족보는 우선순위 하향됨)
-    -   `determineRoundWinner` (저격 결과 반영 후 최종 족보 비교, 동점자 규칙 적용하여 `roundWinner` 와 `isDraw` 설정)
-    -   `persistShowdownResults` (DB `PlayerHands`에 final_hand, is_sniped 등 업데이트, `GameRounds`에 winner, is_draw 등 업데이트)
-    -   `broadcastShowdownResults` (모든 카드, 족보, 저격 결과, 승자 정보 포함)
+    -   `revealAllPersonalCards` (모든 `ACTIVE` 플레이어의 개인 카드를 컨텍스트에 공개적으로 설정)
+    -   `calculateAllPlayerHands` (각 `ACTIVE` 플레이어의 공유 카드 + 개인 카드로 최상의 족보 계산, 컨텍스트의 `player.finalHand` 업데이트)
+    -   `applySnipes`:
+        -   컨텍스트의 `snipesInCurrentRound`를 순회합니다.
+        -   각 `snipe`에 대해, 모든 `ACTIVE` 플레이어(`p`)의 `p.finalHand`를 확인합니다.
+        -   만약 `p.finalHand.rank === snipe.declaredRank` 이고 `p.finalHand.highCard === snipe.declaredHighCard` 이면:
+            -   `p.isSniped = true`로 설정.
+            -   `p.snipedBy = snipe.sniperId` (선택적).
+            -   `p.snipedRank = snipe.declaredRank` (선택적).
+            -   해당 `snipe`는 성공한 것으로 간주 (DB 업데이트 위해 `snipe.is_successful = true` 마킹).
+    -   `determineRoundWinner`:
+        -   `ACTIVE` 플레이어들 중 `isSniped === false`인 플레이어들 중에서 가장 높은 족보를 가진 플레이어를 찾습니다.
+        -   그 다음으로 `isSniped === true`인 플레이어들을 고려합니다 (저격당한 족보는 최하위).
+        -   동점자 규칙(`game-rule.md` 10번)을 적용하여 최종 승자(`roundWinner`) 또는 무승부(`isDraw`)를 결정합니다.
+    -   `persistShowdownResults` (DB `PlayerHands.final_hand_rank`, `PlayerHands.is_sniped`, `Snipes.is_successful`, `GameRounds.winner_participant_id`, `GameRounds.is_draw` 등 업데이트)
+    -   `broadcastShowdownResults` (모든 카드, 족보, 저격 성공 여부, 라운드 승자 정보 포함)
 -   **전환**:
     -   항상 (`always`): `Settlement`
 

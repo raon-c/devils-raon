@@ -75,7 +75,6 @@ erDiagram
         UUID id PK "저격 기록 고유 ID"
         UUID round_id FK "해당 저격이 속한 라운드 ID (REFERENCES GameRounds(id) ON DELETE CASCADE)"
         UUID sniper_id FK "저격을 한 플레이어 ID (REFERENCES GameParticipants(id) ON DELETE CASCADE)"
-        UUID target_id FK "저격 대상 플레이어 ID (REFERENCES GameParticipants(id) ON DELETE CASCADE, NULLABLE)"
         hand_rank declared_rank "선언한 족보 (NOT NULL)"
         INTEGER declared_high_card "선언한 족보의 가장 높은 숫자 (NOT NULL)"
         BOOLEAN is_successful "저격 성공 여부"
@@ -92,7 +91,6 @@ erDiagram
     GameParticipants ||--o{ PlayerHands : "has_hand_in_round"
     GameParticipants ||--o{ Bets : "makes_bet"
     GameParticipants ||--o{ Snipes : "declares_snipe_as_sniper"
-    GameParticipants ||--o{ Snipes : "is_target_of_snipe"
     GameRounds }o--|| GameRooms : "current_round_for_room"
     GameParticipants }o--|| GameRounds : "winner_of_round"
 
@@ -120,7 +118,6 @@ erDiagram
 *   `GameParticipants` (1) : (N) `PlayerHands` (한 참여자는 여러 라운드에 걸쳐 패 정보를 가질 수 있음)
 *   `GameParticipants` (1) : (N) `Bets` (한 참여자는 여러 베팅을 할 수 있음)
 *   `GameParticipants` (1) : (N) `Snipes` (한 참여자는 여러 저격을 할 수 있음 - sniper_id)
-*   `GameParticipants` (0..1) : (N) `Snipes` (한 참여자는 여러 번 저격 대상이 될 수 있음 - target_id, NULL 허용)
 *   `GameRounds` (0..1) -- `GameRooms` (하나의 게임방은 현재 진행중인 라운드 정보를 가질 수 있음 - current_round_id)
 *   `GameParticipants` (0..1) -- `GameRounds` (하나의 라운드는 승리자 정보를 가질 수 있음 - winner_participant_id)
 

@@ -136,14 +136,13 @@
     *   자신의 턴일 때:
         *   [저격하기] 버튼, [패스] 버튼.
         *   저격 시: UI 모달 또는 팝업
-            *   저격 대상 플레이어 선택 (선택 사항, 없으면 전체 저격 의미 가능 - UI 디자인 필요).
             *   저격할 족보 선택 (드롭다운/버튼).
             *   저격할 족보의 가장 높은 숫자 선택 (드롭다운/입력).
             *   [확인] / [취소] 버튼.
-    *   다른 플레이어들의 저격 선언 내용 간략히 표시 (예: "Player A가 Player B의 7 스트레이트를 저격했습니다.").
+    *   다른 플레이어들의 저격 선언 내용 간략히 표시 (예: "Player A가 7 스트레이트를 저격했습니다.").
     *   타이머 (제한 시간 있는 경우).
 *   **사용자 액션 (자신의 턴)**:
-    *   [저격하기] 선택 후 대상, 족보, 숫자 입력 후 [확인]:
+    *   [저격하기] 선택 후 족보, 숫자 입력 후 [확인]:
         *   **시스템 반응**: `DECLARE_SNIPE` 이벤트.
         *   **FSM**: `isSnipeValidForCurrentPlayer` 가드. `processSnipeDeclaration`, `persistSnipe`, `broadcastPlayerSnipeDeclaration`, `setNextPlayerTurnForSniping` 액션.
     *   [패스] 클릭:

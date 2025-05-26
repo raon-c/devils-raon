@@ -158,7 +158,6 @@
 | `id`               | `UUID`        | `PRIMARY KEY`, `DEFAULT uuid_generate_v4()`        | 저격 기록 고유 ID                         |
 | `round_id`         | `UUID`        | `NOT NULL`, `REFERENCES GameRounds(id) ON DELETE CASCADE` | 해당 저격이 속한 라운드 ID                  |
 | `sniper_id`        | `UUID`        | `NOT NULL`, `REFERENCES GameParticipants(id) ON DELETE CASCADE` | 저격을 한 플레이어 ID                     |
-| `target_id`        | `UUID`        | `REFERENCES GameParticipants(id) ON DELETE CASCADE`  | 저격 대상 플레이어 ID (선택 사항, 전체 저격 가능) |
 | `declared_rank`    | `hand_rank`   | `NOT NULL`                                         | 선언한 족보                               |
 | `declared_high_card`| `INTEGER`    | `NOT NULL`                                         | 선언한 족보의 가장 높은 숫자                |
 | `is_successful`    | `BOOLEAN`     |                                                    | 저격 성공 여부 (쇼다운 후 결정)             |
