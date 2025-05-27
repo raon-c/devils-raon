@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 export default async function HomePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
@@ -8,9 +10,7 @@ export default async function HomePage() {
           placeholder="닉네임 입력"
           className="p-2 border rounded text-black"
         />
-        <button className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          방 만들기
-        </button>
+        <Button>방 만들기</Button>
         <div className="flex space-x-2">
           <input
             type="text"
