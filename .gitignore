@@ -44,3 +44,4 @@ prisma/generated-client/
 *.njsproj
 *.sln
 *.sw? 
+/src/generated/prisma
