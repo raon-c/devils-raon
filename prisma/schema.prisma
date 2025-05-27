@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String             @id @default(uuid())
+  username         String             @unique
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  isAiBot          Boolean            @default(false) @map("is_ai_bot")
+  hostedRooms      GameRoom[]         @relation("HostToRooms")
+  gameParticipations GameParticipant[]
+
+  @@map("users")
+}
+
+model RoomStatus {
+  id         String     @id @default(uuid())
+  statusName String     @unique @map("status_name")
+  gameRooms  GameRoom[]
+
+  @@map("room_statuses")
+}
+
+model GameRoom {
+  id               String             @id @default(uuid())
+  roomCode         String             @unique @map("room_code")
+  hostId           String             @map("host_id")
+  host             User               @relation("HostToRooms", fields: [hostId], references: [id])
+  statusId         String             @map("status_id")
+  status           RoomStatus         @relation(fields: [statusId], references: [id])
+  maxPlayers       Int                @default(6) @map("max_players") // CHECK (max_players >= 2 AND max_players <= 6) - Add to DB directly or via custom validation
+  isPublic         Boolean            @default(true) @map("is_public")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  currentRoundId   String?            @unique @map("current_round_id") // This being unique might be an issue if it's nullable and multiple rooms have no current round
+  currentRound     GameRound?         @relation("CurrentRoundToRoom", fields: [currentRoundId], references: [id], onDelete: SetNull)
+  participants     GameParticipant[]
+  gameRounds       GameRound[]        @relation("RoundsInRoom")
+
+  @@map("game_rooms")
+}
+
+model PlayerStatus {
+  id              String            @id @default(uuid())
+  statusName      String            @unique @map("status_name")
+  gameParticipants GameParticipant[]
+
+  @@map("player_statuses")
+}
+
+model GameParticipant {
+  id            String        @id @default(uuid())
+  roomId        String        @map("room_id")
+  room          GameRoom      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId        String        @map("user_id")
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chips         Int           @default(60)
+  statusId      String        @map("player_status_id")
+  status        PlayerStatus  @relation(fields: [statusId], references: [id])
+  turnOrder     Int?          @map("turn_order")
+  joinedAt      DateTime      @default(now()) @map("joined_at")
+  survivedAt    DateTime?     @map("survived_at")
+  eliminatedAt  DateTime?     @map("eliminated_at")
+  playerHands   PlayerHand[]
+  bets          Bet[]
+  snipesAsSniper Snipe[]       @relation("SniperToSnipes")
+  wonRounds     GameRound[]   @relation("RoundWinner")
+
+  @@unique([roomId, userId], map: "unique_room_user")
+  @@unique([roomId, turnOrder], map: "unique_room_turn_order")
+  @@map("game_participants")
+}
+
+model GamePhase {
+  id         String      @id @default(uuid())
+  phaseName  String      @unique @map("phase_name")
+  gameRounds GameRound[]
+  bets       Bet[]
+
+  @@map("game_phases")
+}
+
+model GameRound {
+  id                 String             @id @default(uuid())
+  roomId             String             @map("room_id")
+  room               GameRoom           @relation("RoundsInRoom", fields: [roomId], references: [id], onDelete: Cascade)
+  roundNumber        Int                @map("round_number")
+  phaseId            String             @map("game_phase_id")
+  phase              GamePhase          @relation(fields: [phaseId], references: [id])
+  potChips           Int                @default(0) @map("pot_chips")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  endedAt            DateTime?          @map("ended_at")
+  winnerParticipantId String?           @map("winner_participant_id")
+  winnerParticipant  GameParticipant?   @relation("RoundWinner", fields: [winnerParticipantId], references: [id], onDelete: SetNull)
+  isDraw             Boolean            @default(false) @map("is_draw")
+  playerHands        PlayerHand[]
+  bets               Bet[]
+  snipes             Snipe[]
+  sharedCards        SharedCard[]
+  currentRoomAsRound GameRoom?          @relation("CurrentRoundToRoom")
+  
+  @@unique([roomId, roundNumber], map: "unique_room_round_number")
+  @@map("game_rounds")
+}
+
+model HandRank {
+  id          String       @id @default(uuid())
+  rankName    String       @unique @map("rank_name")
+  playerHands PlayerHand[]
+  snipes      Snipe[]
+
+  @@map("hand_ranks")
+}
+
+model PlayerHand {
+  id                      String                        @id @default(uuid())
+  roundId                 String                        @map("round_id")
+  round                   GameRound                     @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participantId           String                        @map("participant_id")
+  participant             GameParticipant               @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  personalCard1           Int                           @map("personal_card_1")
+  personalCard2           Int                           @map("personal_card_2") // Constraint: personal_card_1 != personal_card_2 (add to DB or validate in app)
+  handRankId              String?                       @map("hand_rank_id")
+  finalHandRank           HandRank?                     @relation(fields: [handRankId], references: [id], onUpdate: NoAction, onDelete: NoAction)
+  isSniped                Boolean                       @default(false) @map("is_sniped")
+  createdAt               DateTime                      @default(now()) @map("created_at")
+  finalHandCompositionCards FinalHandCompositionCard[]
+
+  @@unique([roundId, participantId], map: "unique_round_participant_hand")
+  @@map("player_hands")
+}
+
+model SharedCard {
+  id         String    @id @default(uuid())
+  roundId    String    @map("round_id")
+  round      GameRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  cardValue  Int       @map("card_value") // CHECK (card_value >= 1 AND card_value <= 10)
+  dealOrder  Int       @map("deal_order") // e.g. 1, 2 for first shared, 3, 4 for second shared
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@map("shared_cards")
+}
+
+model FinalHandCompositionCard {
+  id                String     @id @default(uuid())
+  playerHandId      String     @map("player_hand_id")
+  playerHand        PlayerHand @relation(fields: [playerHandId], references: [id], onDelete: Cascade)
+  cardValue         Int        @map("card_value") // CHECK (card_value >= 1 AND card_value <= 10)
+  cardOrderInHand   Int        @map("card_order_in_hand") // 1-5
+  createdAt         DateTime   @default(now()) @map("created_at")
+
+  @@map("final_hand_composition_cards")
+}
+
+model Bet {
+  id             String      @id @default(uuid())
+  roundId        String      @map("round_id")
+  round          GameRound   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  participantId  String      @map("participant_id")
+  participant    GameParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  betAmount      Int         @map("bet_amount") // CHECK (bet_amount > 0)
+  betPhaseId     String      @map("bet_phase_id")
+  betPhase       GamePhase   @relation(fields: [betPhaseId], references: [id])
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@map("bets")
+}
+
+model Snipe {
+  id                 String      @id @default(uuid())
+  roundId            String      @map("round_id")
+  round              GameRound   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  sniperId           String      @map("sniper_id")
+  sniper             GameParticipant @relation("SniperToSnipes", fields: [sniperId], references: [id], onDelete: Cascade)
+  declaredRankId     String      @map("declared_rank_id")
+  declaredRank       HandRank    @relation(fields: [declaredRankId], references: [id])
+  declaredHighCard   Int         @map("declared_high_card")
+  isSuccessful       Boolean?    @map("is_successful")
+  createdAt          DateTime    @default(now()) @map("created_at")
+
+  @@map("snipes")
+} 

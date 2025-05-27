@@ -1,0 +1,5 @@
+// This directory will house feature-specific modules.
+// Example: src/features/game/components, src/features/game/hooks, src/features/game/services
+// Example: src/features/lobby/components, src/features/lobby/services
+
+export {}; 
