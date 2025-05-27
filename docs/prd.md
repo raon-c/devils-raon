@@ -81,7 +81,7 @@
 
 ## 6. 기술 스택 및 아키텍처 개요
 
-*   **프론트엔드**: Next.js (App Router), TypeScript, Tailwind CSS
+*   **프론트엔드**: Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui
 *   **상태 관리 (클라이언트)**: XState (또는 Zustand 고려)
 *   **백엔드 (서버 로직)**: Supabase Edge Functions (TypeScript), XState (FSM 실행)
 *   **실시간 통신**: Supabase Realtime (Channels, Presence)
